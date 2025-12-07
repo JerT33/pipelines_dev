@@ -149,6 +149,60 @@ export class Apis {
     return JSON.parse(eventList);
   }
 
+  /**
+   * Get pod metrics (actual CPU/memory usage from metrics-server)
+   */
+  public static async getPodMetrics(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod/metrics?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    const metrics = await this._fetch(query);
+    return JSON.parse(metrics);
+  }
+
+  /**
+   * Get stored metrics history for a pod (persisted to object storage)
+   */
+  public static async getPodMetricsHistory(
+    podName: string,
+    podNamespace: string,
+  ): Promise<JSONObject | null> {
+    const query = `k8s/pod/metrics/history?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    try {
+      const response = await this._fetch(query);
+      return JSON.parse(response);
+    } catch (err) {
+      // 404 means no stored metrics - this is expected for new pods
+      const error = err as Error;
+      if (error.message && error.message.includes('404')) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Save metrics history for a pod (persisted to object storage)
+   */
+  public static async savePodMetricsHistory(
+    podName: string,
+    podNamespace: string,
+    metricsData: JSONObject,
+  ): Promise<void> {
+    const path = `k8s/pod/metrics/history?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    await this._fetch(path, undefined, undefined, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(metricsData),
+    });
+  }
+
   public static get basePath(): string {
     const path = window.location.protocol + '//' + window.location.host + window.location.pathname;
     // Trim trailing '/' if exists

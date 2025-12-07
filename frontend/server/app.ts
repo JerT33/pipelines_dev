@@ -27,7 +27,8 @@ import {
 import { getTensorboardHandlers } from './handlers/tensorboard';
 import { getAuthorizeFn } from './helpers/auth';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
+import { podInfoHandler, podEventsHandler, podMetricsHandler } from './handlers/pod-info';
+import { createPodMetricsHistoryHandlers } from './handlers/pod-metrics-history';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
@@ -232,6 +233,17 @@ function createUIServer(options: UIConfigs) {
   /** Pod info */
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
+  registerHandler(app.get, '/k8s/pod/metrics', podMetricsHandler);
+
+  /** Pod metrics history (persistent storage) */
+  const { getHandler: getMetricsHistoryHandler, saveHandler: saveMetricsHistoryHandler } =
+    createPodMetricsHistoryHandlers(
+      options.argo.archiveArtifactory,
+      options.argo.archiveBucketName,
+      options.artifacts,
+    );
+  registerHandler(app.get, '/k8s/pod/metrics/history', getMetricsHistoryHandler);
+  registerHandler(app.post, '/k8s/pod/metrics/history', saveMetricsHistoryHandler);
 
   /** Cluster metadata (GKE only) */
   registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));

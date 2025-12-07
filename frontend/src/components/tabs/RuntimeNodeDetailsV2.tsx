@@ -51,6 +51,7 @@ import InputOutputTab, {
   getArtifactParamList,
   ParamList,
 } from 'src/components/tabs/InputOutputTab';
+import { ResourcesTab } from 'src/components/tabs/ResourcesTab';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
@@ -166,12 +167,22 @@ function TaskNodeDetail({
   const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
   const logsBannerAdditionalInfo = logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO);
 
+  // Extract pod name from execution for Resources tab
+  // Use the namespace prop which is already available
+  const podName = execution
+    ?.getCustomPropertiesMap()
+    .get(KfpExecutionProperties.POD_NAME)
+    ?.getStringValue() || '';
+const podNamespace = execution
+    ?.getCustomPropertiesMap()
+    .get('namespace')
+    ?.getStringValue() || '';
   const [selectedTab, setSelectedTab] = useState(0);
 
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'Resources']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -207,6 +218,16 @@ function TaskNodeDetail({
               <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
                 <LogViewer logLines={(logsDetails || '').split(/[\r\n]+/)} />
               </div>
+            )}
+          </div>
+        )}
+        {/* Resources tab */}
+        {selectedTab === 3 && (
+          <div className={commonCss.page}>
+            {podName && podNamespace ? (
+              <ResourcesTab podName={podName} podNamespace={podNamespace} />
+            ) : (
+              <Banner message='Pod information not available.' mode='info' />
             )}
           </div>
         )}

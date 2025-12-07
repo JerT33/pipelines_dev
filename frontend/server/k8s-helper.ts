@@ -371,6 +371,29 @@ export async function getK8sSecret(name: string, key: string, providedNamespace?
   return buff.toString('ascii');
 }
 
+export async function getPodMetrics(
+  podName: string,
+  podNamespace: string,
+): Promise<[any, undefined] | [undefined, K8sError]> {
+  try {
+    // Query metrics.k8s.io API directly via CustomObjectsApi
+    const response = await k8sV1CustomObjectClient.getNamespacedCustomObject(
+      'metrics.k8s.io',
+      'v1beta1',
+      podNamespace,
+      'pods',
+      podName,
+    );
+    return [response.body, undefined];
+  } catch (error: any) {
+    let userMessage = `Could not get metrics for pod ${podName} in namespace ${podNamespace}. Metrics server may not be available.`;
+    if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
+      userMessage = `Invalid resource name`;
+    }
+    return [undefined, { message: userMessage }];
+  }
+}
+
 export const TEST_ONLY = {
   k8sV1Client,
   k8sV1CustomObjectClient,
