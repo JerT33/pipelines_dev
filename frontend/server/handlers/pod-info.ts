@@ -16,6 +16,32 @@ import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 
 /**
+ * podMetricsHandler retrieves pod metrics from metrics-server and sends back as JSON format.
+ */
+export const podMetricsHandler: Handler = async (req, res) => {
+  const { podname, podnamespace } = req.query;
+  if (!podname) {
+    res.status(422).send('podname argument is required');
+    return;
+  }
+  if (!podnamespace) {
+    res.status(422).send('podnamespace argument is required');
+    return;
+  }
+  const podName = decodeURIComponent(podname as string);
+  const podNamespace = decodeURIComponent(podnamespace as string);
+
+  const [metrics, err] = await k8sHelper.getPodMetrics(podName, podNamespace);
+  if (err) {
+    const { message } = err;
+    console.error(message);
+    res.status(500).send(message);
+    return;
+  }
+  res.status(200).send(JSON.stringify(metrics));
+};
+
+/**
  * podInfoHandler retrieves pod info and sends back as JSON format.
  */
 export const podInfoHandler: Handler = async (req, res) => {

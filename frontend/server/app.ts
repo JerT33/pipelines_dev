@@ -27,7 +27,7 @@ import {
 import { getTensorboardHandlers } from './handlers/tensorboard';
 import { getAuthorizeFn } from './helpers/auth';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
+import { podInfoHandler, podEventsHandler, podMetricsHandler } from './handlers/pod-info';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
@@ -232,6 +232,7 @@ function createUIServer(options: UIConfigs) {
   /** Pod info */
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
+  registerHandler(app.get, '/k8s/pod/metrics', podMetricsHandler);
 
   /** Cluster metadata (GKE only) */
   registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));

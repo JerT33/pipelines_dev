@@ -149,6 +149,17 @@ export class Apis {
     return JSON.parse(eventList);
   }
 
+  /**
+   * Get pod metrics (actual CPU/memory usage from metrics-server)
+   */
+  public static async getPodMetrics(podName: string, podNamespace: string): Promise<JSONObject> {
+    const query = `k8s/pod/metrics?podname=${encodeURIComponent(
+      podName,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    const metrics = await this._fetch(query);
+    return JSON.parse(metrics);
+  }
+
   public static get basePath(): string {
     const path = window.location.protocol + '//' + window.location.host + window.location.pathname;
     // Trim trailing '/' if exists

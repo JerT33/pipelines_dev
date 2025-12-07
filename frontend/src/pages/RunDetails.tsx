@@ -22,6 +22,7 @@ import { Link, Redirect } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
+import { ResourcesTab } from 'src/components/tabs/ResourcesTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/mlmd/MlmdUtils';
@@ -90,6 +91,7 @@ export enum SidePanelTab {
   EVENTS,
   ML_METADATA,
   MANIFEST,
+  RESOURCES,
 }
 
 interface SelectedNodeDetails {
@@ -515,6 +517,18 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     </div>
                                   )}
 
+                                {sidepanelSelectedTab === SidePanelTab.RESOURCES &&
+                                  selectedNodeDetails.phase !== NodePhase.SKIPPED && (
+                                    <div className={commonCss.page}>
+                                      {selectedNodeId && namespace && (
+                                        <ResourcesTab
+                                          podName={selectedNodeName}
+                                          podNamespace={namespace}
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+
                                 {sidepanelSelectedTab === SidePanelTab.LOGS &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
@@ -696,6 +710,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             break;
           }
           tabNameList.push('Manifest');
+          break;
+        }
+        case SidePanelTab.RESOURCES: {
+          tabNameList.push('Resources');
           break;
         }
         default: {
