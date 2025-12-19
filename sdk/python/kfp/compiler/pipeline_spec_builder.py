@@ -417,6 +417,11 @@ def _build_component_spec_from_component_spec_structure(
             if input_spec.description:
                 component_spec.input_definitions.parameters[
                     input_name].description = input_spec.description
+            if input_spec.allowed_values:
+                for value in input_spec.allowed_values:
+                    component_spec.input_definitions.parameters[
+                        input_name].allowed_values.append(
+                            json_format.ParseDict(value, struct_pb2.Value()))
 
         else:
             component_spec.input_definitions.artifacts[

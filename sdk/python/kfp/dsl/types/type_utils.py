@@ -15,7 +15,8 @@
 
 import inspect
 import json
-from typing import Any, Callable, Dict, Optional, Type, Union
+from enum import Enum
+from typing import Any, Callable, Dict, Literal, Optional, Type, Union
 
 try:
     from typing import get_args, get_origin
@@ -585,6 +586,12 @@ def _annotation_to_type_struct(annotation):
     if isinstance(annotation, dict):
         return annotation
 
+    # Handle Literal and Enum types - return their base type (e.g., "String")
+    # The allowed values are extracted separately via get_allowed_values()
+    base_type = get_base_type_for_literal_or_enum(annotation)
+    if base_type is not None:
+        return base_type
+
     origin = get_origin(annotation)
     if origin in {list, dict}:
         annotation_module = getattr(annotation, '__module__', None)
@@ -616,6 +623,70 @@ def _annotation_to_type_struct(annotation):
         schema_title = str(annotation)
     type_struct = get_canonical_type_name_for_type(schema_title)
     return type_struct or schema_title
+
+
+def is_literal_type(annotation: Any) -> bool:
+    """Check if the annotation is a typing.Literal type."""
+    return get_origin(annotation) is Literal
+
+
+def is_enum_type(annotation: Any) -> bool:
+    """Check if the annotation is an Enum class."""
+    try:
+        return isinstance(annotation, type) and issubclass(annotation, Enum)
+    except TypeError:
+        return False
+
+
+def get_allowed_values(annotation: Any) -> Optional[list]:
+    """Extract allowed values from a Literal or Enum type annotation.
+
+    Args:
+        annotation: A type annotation that may be Literal["a", "b"] or an Enum class.
+
+    Returns:
+        A list of allowed string values, or None if not a Literal/Enum type.
+    """
+    if is_literal_type(annotation):
+        # Literal["a", "b", "c"] -> ("a", "b", "c")
+        return list(get_args(annotation))
+
+    if is_enum_type(annotation):
+        # class Color(Enum): RED = "red" -> ["red", "green", "blue"]
+        return [member.value for member in annotation]
+
+    return None
+
+
+def get_base_type_for_literal_or_enum(annotation: Any) -> Optional[str]:
+    """Get the base type name for a Literal or Enum annotation.
+
+    For Literal["a", "b"], returns "String" (based on the type of values).
+    For Enum classes, returns "String" (enum values are typically strings).
+
+    Args:
+        annotation: A Literal or Enum type annotation.
+
+    Returns:
+        The canonical type name (e.g., "String", "Integer"), or None if not Literal/Enum.
+    """
+    if is_literal_type(annotation):
+        args = get_args(annotation)
+        if args:
+            # Infer type from the first value
+            first_value = args[0]
+            return get_canonical_type_name_for_type(type(first_value))
+        return 'String'  # Default to String if empty
+
+    if is_enum_type(annotation):
+        # Get the type of enum values
+        members = list(annotation)
+        if members:
+            first_value = members[0].value
+            return get_canonical_type_name_for_type(type(first_value))
+        return 'String'  # Default to String if empty
+
+    return None
 
 
 def is_typed_named_tuple_annotation(annotation: Any) -> bool:

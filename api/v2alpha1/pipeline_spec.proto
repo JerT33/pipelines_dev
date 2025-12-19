@@ -223,6 +223,10 @@ message ComponentInputsSpec {
     // The description for this input parameter of the component.
     // Should not exceed 1024 characters.
     string description = 5;
+
+    // Optional field. List of allowed values for this parameter.
+    // Used for Literal or Enum type parameters to constrain input to specific values.
+    repeated google.protobuf.Value allowed_values = 6;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;

@@ -311,10 +311,13 @@ def get_name_to_specs(
 
         # parameter type
         else:
+            # Extract allowed_values before converting annotation to type string
+            # (for Literal/Enum types, _annotation_to_type_struct returns base type like "String")
+            allowed_values = type_utils.get_allowed_values(annotation)
             type_string = type_utils._annotation_to_type_struct(annotation)
             name_to_input_specs[maybe_make_unique(
                 name, list(name_to_input_specs))] = make_input_spec(
-                    type_string, func_param)
+                    type_string, func_param, allowed_values=allowed_values)
 
     ### handle return annotations ###
     return_ann = signature.return_annotation
@@ -400,8 +403,15 @@ def make_output_spec(annotation: Any) -> structures.OutputSpec:
 
 
 def make_input_spec(annotation: Any,
-                    inspect_param: inspect.Parameter) -> structures.InputSpec:
-    """Makes an InputSpec from a cleaned output annotation."""
+                    inspect_param: inspect.Parameter,
+                    allowed_values: Optional[list] = None) -> structures.InputSpec:
+    """Makes an InputSpec from a cleaned output annotation.
+
+    Args:
+        annotation: The type annotation (may be type string for Literal/Enum).
+        inspect_param: The inspect.Parameter object.
+        allowed_values: List of allowed values for Literal/Enum types.
+    """
     annotation = canonicalize_annotation(annotation)
     input_output_spec_args = make_input_output_spec_args(annotation)
 
@@ -425,6 +435,7 @@ def make_input_spec(annotation: Any,
         **input_output_spec_args,
         default=default,
         optional=optional,
+        allowed_values=allowed_values,
     )
 
 
