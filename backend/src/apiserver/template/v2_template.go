@@ -450,6 +450,29 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			default:
 				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
 			}
+
+			// Verify that the parameter value is in the allowed values list (if specified)
+			allowedValues := param.GetAllowedValues()
+			if len(allowedValues) > 0 {
+				isValid := false
+				for _, allowed := range allowedValues {
+					if valuesEqual(input, allowed) {
+						isValid = true
+						break
+					}
+				}
+				if !isValid {
+					// Build a list of allowed values for the error message
+					allowedStrings := make([]string, len(allowedValues))
+					for i, allowed := range allowedValues {
+						allowedStrings[i] = formatValue(allowed)
+					}
+					return util.NewInvalidInputError(
+						"input parameter %s has value %s, which is not in the allowed values: [%s]",
+						name, formatValue(input), strings.Join(allowedStrings, ", "),
+					)
+				}
+			}
 		}
 	}
 
@@ -466,4 +489,57 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 	}
 
 	return nil
+}
+
+// valuesEqual checks if two structpb.Value are equal
+func valuesEqual(a, b *structpb.Value) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	// Compare by kind and value
+	switch aKind := a.GetKind().(type) {
+	case *structpb.Value_StringValue:
+		if bKind, ok := b.GetKind().(*structpb.Value_StringValue); ok {
+			return aKind.StringValue == bKind.StringValue
+		}
+	case *structpb.Value_NumberValue:
+		if bKind, ok := b.GetKind().(*structpb.Value_NumberValue); ok {
+			return aKind.NumberValue == bKind.NumberValue
+		}
+	case *structpb.Value_BoolValue:
+		if bKind, ok := b.GetKind().(*structpb.Value_BoolValue); ok {
+			return aKind.BoolValue == bKind.BoolValue
+		}
+	case *structpb.Value_NullValue:
+		if _, ok := b.GetKind().(*structpb.Value_NullValue); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// formatValue formats a structpb.Value for display in error messages
+func formatValue(v *structpb.Value) string {
+	if v == nil {
+		return "null"
+	}
+	switch kind := v.GetKind().(type) {
+	case *structpb.Value_StringValue:
+		return fmt.Sprintf("%q", kind.StringValue)
+	case *structpb.Value_NumberValue:
+		return fmt.Sprintf("%v", kind.NumberValue)
+	case *structpb.Value_BoolValue:
+		return fmt.Sprintf("%v", kind.BoolValue)
+	case *structpb.Value_NullValue:
+		return "null"
+	case *structpb.Value_ListValue:
+		return "[list]"
+	case *structpb.Value_StructValue:
+		return "{struct}"
+	default:
+		return "unknown"
+	}
 }

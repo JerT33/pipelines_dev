@@ -273,6 +273,11 @@ export interface ComponentInputsSpec_ParameterSpec {
    * Should not exceed 1024 characters.
    */
   description: string;
+  /**
+   * Optional field. List of allowed values for this parameter.
+   * Used for Literal or Enum type parameters to constrain input to specific values.
+   */
+  allowedValues: any[];
 }
 
 export interface ComponentInputsSpec_ArtifactsEntry {
@@ -3675,6 +3680,10 @@ export const ComponentInputsSpec_ParameterSpec = {
       object.description !== undefined && object.description !== null
         ? String(object.description)
         : '';
+    message.allowedValues =
+      object.allowedValues !== undefined && object.allowedValues !== null
+        ? object.allowedValues
+        : [];
     return message;
   },
 
@@ -3686,6 +3695,11 @@ export const ComponentInputsSpec_ParameterSpec = {
     message.defaultValue !== undefined && (obj.defaultValue = message.defaultValue);
     message.isOptional !== undefined && (obj.isOptional = message.isOptional);
     message.description !== undefined && (obj.description = message.description);
+    if (message.allowedValues) {
+      obj.allowedValues = message.allowedValues;
+    } else {
+      obj.allowedValues = [];
+    }
     return obj;
   },
 
@@ -3700,6 +3714,7 @@ export const ComponentInputsSpec_ParameterSpec = {
     message.defaultValue = object.defaultValue ?? undefined;
     message.isOptional = object.isOptional ?? false;
     message.description = object.description ?? '';
+    message.allowedValues = object.allowedValues ?? [];
     return message;
   },
 };

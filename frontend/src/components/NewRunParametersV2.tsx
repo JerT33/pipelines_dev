@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
+import { Button, Checkbox, FormControlLabel, InputAdornment, TextField, Select, MenuItem, FormControl, InputLabel } from '@material-ui/core';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
@@ -295,6 +295,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               value: updatedParameters[k],
               type: v.parameterType,
               errorMsg: errorMessages[k],
+              allowedValues: v.allowedValues || [],
             };
 
             return (
@@ -355,6 +356,7 @@ interface Param {
   value: any;
   type: ParameterType_ParameterTypeEnum;
   errorMsg: string;
+  allowedValues: any[];
 }
 
 interface ParamEditorProps {
@@ -436,9 +438,28 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
       });
     };
 
+    // Check if this parameter has allowed values (Literal/Enum type)
+    const hasAllowedValues = param.allowedValues && param.allowedValues.length > 0;
+
     return (
       <>
-        {this.state.isJsonField ? (
+        {hasAllowedValues ? (
+          // Render a dropdown for parameters with allowed values
+          <FormControl variant='outlined' className={classes(commonCss.textField, css.textfield)}>
+            <InputLabel htmlFor={id}>{param.key}</InputLabel>
+            <Select
+              value={param.value || ''}
+              onChange={ev => onChange(ev.target.value as string)}
+              inputProps={{ id: id, name: id }}
+            >
+              {param.allowedValues.map((allowedValue: any) => (
+                <MenuItem key={String(allowedValue)} value={String(allowedValue)}>
+                  {String(allowedValue)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        ) : this.state.isJsonField ? (
           <TextField
             id={id}
             disabled={this.state.isEditorOpen}
