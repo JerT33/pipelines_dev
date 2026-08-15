@@ -157,6 +157,10 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 	}
+	// The run namespace does not imply access to the referenced pipeline.
+	if err := canAccessReferencedPipeline(ctx, s.resourceManager, &run.PipelineSpec); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run due to authorization error")
+	}
 	return s.resourceManager.CreateRun(ctx, run)
 }
 

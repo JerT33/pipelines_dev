@@ -1254,33 +1254,59 @@ func (s *PipelineServerV1) GetPipelineVersionTemplate(ctx context.Context, reque
 // Adds namespace of the parent pipeline if version id is not empty,
 // API group, version, and resource type.
 func (s *BasePipelineServer) canAccessPipelineVersion(ctx context.Context, versionId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	if !common.IsMultiUserMode() {
-		// Skip authorization if not multi-user mode.
-		return nil
-	}
-	pipelineId := ""
-	if versionId != "" {
-		pipelineVersion, err := s.resourceManager.GetPipelineVersion(versionId)
-		if err != nil {
-			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists", versionId)
-		}
-		pipelineId = pipelineVersion.PipelineId
-	}
-	return s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
+	return canAccessPipelineVersion(ctx, s.resourceManager, versionId, resourceAttributes)
 }
 
 // Checks if a user can access a pipeline.
 // Adds parent namespace if pipeline id is not empty,
 // API group, version, and resource type.
-func (s *BasePipelineServer) canAccessPipeline(ctx context.Context, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func (s *BasePipelineServer) canAccessPipeline(ctx context.Context, pipelineID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	return canAccessPipeline(ctx, s.resourceManager, pipelineID, resourceAttributes)
+}
+
+// canAccessReferencedPipeline authorizes the pipeline a run points at, which may live in a different
+// namespace than the run. An inline spec has no stored pipeline to authorize.
+func canAccessReferencedPipeline(ctx context.Context, resourceManager *resource.ResourceManager, pipelineSpec *model.PipelineSpec) error {
+	resourceAttributes := &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet}
+
+	if pipelineSpec.PipelineVersionId != "" {
+		return canAccessPipelineVersion(ctx, resourceManager, pipelineSpec.PipelineVersionId, resourceAttributes)
+	}
+
+	if pipelineSpec.PipelineId != "" {
+		return canAccessPipeline(ctx, resourceManager, pipelineSpec.PipelineId, resourceAttributes)
+	}
+
+	return nil
+}
+
+// canAccessPipelineVersion is the server-independent form, so that the run and recurring run
+// servers can authorize the pipeline a run references.
+func canAccessPipelineVersion(ctx context.Context, resourceManager *resource.ResourceManager, versionID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-	if pipelineId != "" {
-		pipeline, err := s.resourceManager.GetPipeline(pipelineId)
+	pipelineID := ""
+	if versionID != "" {
+		pipelineVersion, err := resourceManager.GetPipelineVersion(versionID)
 		if err != nil {
-			return util.Wrapf(err, "Failed to access pipeline %s. Check if it exists and have a namespace assigned", pipelineId)
+			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists", versionID)
+		}
+		pipelineID = pipelineVersion.PipelineId
+	}
+	return canAccessPipeline(ctx, resourceManager, pipelineID, resourceAttributes)
+}
+
+func canAccessPipeline(ctx context.Context, resourceManager *resource.ResourceManager, pipelineID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+	if pipelineID != "" {
+		pipeline, err := resourceManager.GetPipeline(pipelineID)
+		if err != nil {
+			return util.Wrapf(err, "Failed to access pipeline %s. Check if it exists and have a namespace assigned", pipelineID)
 		}
 		resourceAttributes.Namespace = pipeline.Namespace
 		if resourceAttributes.Name == "" {
@@ -1290,7 +1316,7 @@ func (s *BasePipelineServer) canAccessPipeline(ctx context.Context, pipelineId s
 	// Skip authorization for read-only operations on shared pipelines in multi-user mode.
 	// Write operations (create, update, delete) on shared pipelines must still be authorized
 	// against the KFP system namespace, since shared pipelines have no namespace of their own.
-	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+	if resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		if resourceAttributes.Verb == common.RbacResourceVerbGet || resourceAttributes.Verb == common.RbacResourceVerbList {
 			return nil
 		}
@@ -1298,18 +1324,18 @@ func (s *BasePipelineServer) canAccessPipeline(ctx context.Context, pipelineId s
 		resourceAttributes.Group = common.RbacPipelinesGroup
 		resourceAttributes.Version = common.RbacPipelinesVersion
 		resourceAttributes.Resource = common.RbacResourceTypePipelines
-		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+		err := resourceManager.IsAuthorized(ctx, resourceAttributes)
 		if err != nil {
-			return util.Wrapf(err, "Failed to access shared pipeline %s. Check if you have permission to %s shared pipelines", pipelineId, resourceAttributes.Verb)
+			return util.Wrapf(err, "Failed to access shared pipeline %s. Check if you have permission to %s shared pipelines", pipelineID, resourceAttributes.Verb)
 		}
 		return nil
 	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	resourceAttributes.Resource = common.RbacResourceTypePipelines
-	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
+	err := resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrapf(err, "Failed to access pipeline %s. Check if you have access to namespace %s", pipelineId, resourceAttributes.Namespace)
+		return util.Wrapf(err, "Failed to access pipeline %s. Check if you have access to namespace %s", pipelineID, resourceAttributes.Namespace)
 	}
 	return nil
 }

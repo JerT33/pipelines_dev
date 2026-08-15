@@ -27,7 +27,31 @@ var (
 	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClient{}
 	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClientUnauthorized{}
 	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClientError{}
+	_ SubjectAccessReviewInterface = FakeSubjectAccessReviewClientDenyNamespace{}
 )
+
+// FakeSubjectAccessReviewClientDenyNamespace denies only reviews targeting DeniedNamespace.
+type FakeSubjectAccessReviewClientDenyNamespace struct {
+	DeniedNamespace string
+}
+
+func (f FakeSubjectAccessReviewClientDenyNamespace) Create(
+	_ context.Context, review *authzv1.SubjectAccessReview, _ v1.CreateOptions,
+) (*authzv1.SubjectAccessReview, error) {
+	allowed := true
+	if attributes := review.Spec.ResourceAttributes; attributes != nil && attributes.Namespace == f.DeniedNamespace {
+		allowed = false
+	}
+
+	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{
+		Allowed: allowed,
+		Reason:  "denied by namespace",
+	}}, nil
+}
+
+func NewFakeSubjectAccessReviewClientDenyNamespace(namespace string) FakeSubjectAccessReviewClientDenyNamespace {
+	return FakeSubjectAccessReviewClientDenyNamespace{DeniedNamespace: namespace}
+}
 
 type FakeSubjectAccessReviewClient struct{}
 

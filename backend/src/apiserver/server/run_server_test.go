@@ -29,6 +29,7 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -503,6 +504,51 @@ func TestCreateRunV1_Unauthorized(t *testing.T) {
 		err.Error(),
 		"PermissionDenied: User 'user@google.com' is not authorized with reason",
 	)
+}
+
+// A caller with write access to their own namespace must not be able to run a pipeline that lives
+// in a namespace they cannot read.
+func TestCreateRun_CrossNamespacePipelineIsDenied(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientDenyNamespace("ns2")
+	defer clientManager.Close()
+	manager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "ns1"})
+	assert.Nil(t, err)
+
+	pipeline, err := manager.CreatePipeline(&model.Pipeline{Name: "other-teams-pipeline", Namespace: "ns2"})
+	assert.Nil(t, err)
+	version, err := manager.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1",
+		PipelineId:   pipeline.UUID,
+		PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+	})
+	assert.Nil(t, err)
+
+	md := metadata.New(map[string]string{
+		common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com",
+	})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	server := createRunServer(manager)
+	_, err = server.CreateRun(ctx, &apiv2beta1.CreateRunRequest{Run: &apiv2beta1.Run{
+		DisplayName:  "run1",
+		ExperimentId: experiment.UUID,
+		PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+				PipelineId:        pipeline.UUID,
+				PipelineVersionId: version.UUID,
+			},
+		},
+	}})
+
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "PermissionDenied")
 }
 
 func TestCreateRunV1_Multiuser(t *testing.T) {
