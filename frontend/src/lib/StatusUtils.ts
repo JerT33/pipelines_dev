@@ -146,8 +146,9 @@ export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
     case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       return false;
     default:
+      // Unspecified is protobuf's zero value, so it is omitted on the wire and arrives as undefined.
       logger.warn('Unknown state:', state);
-      throw new Error('Unexpected runtime state!');
+      return false;
   }
 }
 
