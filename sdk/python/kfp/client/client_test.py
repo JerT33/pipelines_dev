@@ -365,6 +365,48 @@ class TestClient(parameterized.TestCase):
                 self.client.get_pipeline_id(
                     'test-pipeline', namespace='test-ns')
 
+    def test_get_pipeline_version_id(self):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipeline_versions') as mock_list:
+            mock_list.return_value = Mock(
+                pipeline_versions=[Mock(pipeline_version_id='version-id')])
+
+            version_id = self.client.get_pipeline_version_id(
+                'pipeline-id', 'test-version')
+
+            self.assertEqual(version_id, 'version-id')
+            mock_list.assert_called_once()
+            self.assertEqual(mock_list.call_args.kwargs['pipeline_id'],
+                             'pipeline-id')
+            version_filter = json.loads(mock_list.call_args.kwargs['filter'])
+            self.assertEqual(version_filter['predicates'][0]['stringValue'],
+                             'test-version')
+
+    def test_get_pipeline_version_id_returns_none_when_not_found(self):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipeline_versions') as mock_list:
+            mock_list.return_value = Mock(pipeline_versions=None)
+
+            self.assertIsNone(
+                self.client.get_pipeline_version_id('pipeline-id',
+                                                    'test-version'))
+
+    def test_get_pipeline_version_id_raises_when_name_is_not_unique(self):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipeline_versions') as mock_list:
+            mock_list.return_value = Mock(pipeline_versions=[
+                Mock(pipeline_version_id='a'),
+                Mock(pipeline_version_id='b')
+            ])
+
+            with self.assertRaisesRegex(ValueError,
+                                        'Multiple pipeline versions'):
+                self.client.get_pipeline_version_id('pipeline-id',
+                                                    'test-version')
+
     @patch('kfp.Client.get_user_namespace', return_value='ns2')
     def test_list_recurring_runs_uses_user_namespace_when_not_provided(
             self, mock_get_user_namespace):

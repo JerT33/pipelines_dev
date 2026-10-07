@@ -552,6 +552,39 @@ class Client:
             )
         return None
 
+    def get_pipeline_version_id(
+        self,
+        pipeline_id: str,
+        version_name: str,
+    ) -> Optional[str]:
+        """Gets the ID of a pipeline version by its name.
+
+        Args:
+            pipeline_id: ID of the pipeline that owns the version.
+            version_name: Pipeline version name.
+
+        Returns:
+            The pipeline version ID if a version with the name exists.
+        """
+        version_filter = json.dumps({
+            'predicates': [{
+                'operation': _FILTER_OPERATIONS['EQUALS'],
+                'key': 'display_name',
+                'stringValue': version_name,
+            }]
+        })
+        result = self._pipelines_api.pipeline_service_list_pipeline_versions(
+            pipeline_id=pipeline_id, filter=version_filter)
+        if result.pipeline_versions is None:
+            return None
+        if len(result.pipeline_versions) == 1:
+            return result.pipeline_versions[0].pipeline_version_id
+        elif len(result.pipeline_versions) > 1:
+            raise ValueError(
+                f'Multiple pipeline versions with the name: {version_name} found, the name needs to be unique.'
+            )
+        return None
+
     def list_experiments(
         self,
         page_token: str = '',
