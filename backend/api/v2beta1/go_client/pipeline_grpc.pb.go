@@ -42,6 +42,7 @@ const (
 	PipelineService_CreatePipelineAndVersion_FullMethodName = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/CreatePipelineAndVersion"
 	PipelineService_CreatePipelineVersion_FullMethodName    = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/CreatePipelineVersion"
 	PipelineService_GetPipelineVersion_FullMethodName       = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/GetPipelineVersion"
+	PipelineService_GetPipelineVersionByName_FullMethodName = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/GetPipelineVersionByName"
 	PipelineService_ListPipelineVersions_FullMethodName     = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/ListPipelineVersions"
 	PipelineService_DeletePipelineVersion_FullMethodName    = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/DeletePipelineVersion"
 	PipelineService_UpdatePipeline_FullMethodName           = "/kubeflow.pipelines.backend.api.v2beta1.PipelineService/UpdatePipeline"
@@ -69,6 +70,8 @@ type PipelineServiceClient interface {
 	CreatePipelineVersion(ctx context.Context, in *CreatePipelineVersionRequest, opts ...grpc.CallOption) (*PipelineVersion, error)
 	// Gets a pipeline version by pipeline version ID and pipeline ID.
 	GetPipelineVersion(ctx context.Context, in *GetPipelineVersionRequest, opts ...grpc.CallOption) (*PipelineVersion, error)
+	// Finds a specific pipeline version by name and pipeline ID.
+	GetPipelineVersionByName(ctx context.Context, in *GetPipelineVersionByNameRequest, opts ...grpc.CallOption) (*PipelineVersion, error)
 	// Lists all pipeline versions of a given pipeline ID.
 	ListPipelineVersions(ctx context.Context, in *ListPipelineVersionsRequest, opts ...grpc.CallOption) (*ListPipelineVersionsResponse, error)
 	// Deletes a specific pipeline version by pipeline version ID and pipeline ID.
@@ -167,6 +170,16 @@ func (c *pipelineServiceClient) GetPipelineVersion(ctx context.Context, in *GetP
 	return out, nil
 }
 
+func (c *pipelineServiceClient) GetPipelineVersionByName(ctx context.Context, in *GetPipelineVersionByNameRequest, opts ...grpc.CallOption) (*PipelineVersion, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PipelineVersion)
+	err := c.cc.Invoke(ctx, PipelineService_GetPipelineVersionByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pipelineServiceClient) ListPipelineVersions(ctx context.Context, in *ListPipelineVersionsRequest, opts ...grpc.CallOption) (*ListPipelineVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListPipelineVersionsResponse)
@@ -228,6 +241,8 @@ type PipelineServiceServer interface {
 	CreatePipelineVersion(context.Context, *CreatePipelineVersionRequest) (*PipelineVersion, error)
 	// Gets a pipeline version by pipeline version ID and pipeline ID.
 	GetPipelineVersion(context.Context, *GetPipelineVersionRequest) (*PipelineVersion, error)
+	// Finds a specific pipeline version by name and pipeline ID.
+	GetPipelineVersionByName(context.Context, *GetPipelineVersionByNameRequest) (*PipelineVersion, error)
 	// Lists all pipeline versions of a given pipeline ID.
 	ListPipelineVersions(context.Context, *ListPipelineVersionsRequest) (*ListPipelineVersionsResponse, error)
 	// Deletes a specific pipeline version by pipeline version ID and pipeline ID.
@@ -269,6 +284,9 @@ func (UnimplementedPipelineServiceServer) CreatePipelineVersion(context.Context,
 }
 func (UnimplementedPipelineServiceServer) GetPipelineVersion(context.Context, *GetPipelineVersionRequest) (*PipelineVersion, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPipelineVersion not implemented")
+}
+func (UnimplementedPipelineServiceServer) GetPipelineVersionByName(context.Context, *GetPipelineVersionByNameRequest) (*PipelineVersion, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPipelineVersionByName not implemented")
 }
 func (UnimplementedPipelineServiceServer) ListPipelineVersions(context.Context, *ListPipelineVersionsRequest) (*ListPipelineVersionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPipelineVersions not implemented")
@@ -447,6 +465,24 @@ func _PipelineService_GetPipelineVersion_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PipelineService_GetPipelineVersionByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPipelineVersionByNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PipelineServiceServer).GetPipelineVersionByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PipelineService_GetPipelineVersionByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PipelineServiceServer).GetPipelineVersionByName(ctx, req.(*GetPipelineVersionByNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PipelineService_ListPipelineVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPipelineVersionsRequest)
 	if err := dec(in); err != nil {
@@ -557,6 +593,10 @@ var PipelineService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPipelineVersion",
 			Handler:    _PipelineService_GetPipelineVersion_Handler,
+		},
+		{
+			MethodName: "GetPipelineVersionByName",
+			Handler:    _PipelineService_GetPipelineVersionByName_Handler,
 		},
 		{
 			MethodName: "ListPipelineVersions",

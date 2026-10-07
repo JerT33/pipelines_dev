@@ -103,6 +103,12 @@ type ClientService interface {
 	// PipelineServiceGetPipelineVersionContext gets a pipeline version by pipeline version ID and pipeline ID.
 	PipelineServiceGetPipelineVersionContext(ctx context.Context, params *PipelineServiceGetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionOK, error)
 
+	// PipelineServiceGetPipelineVersionByName finds a specific pipeline version by name and pipeline ID.
+	PipelineServiceGetPipelineVersionByName(params *PipelineServiceGetPipelineVersionByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionByNameOK, error)
+
+	// PipelineServiceGetPipelineVersionByNameContext finds a specific pipeline version by name and pipeline ID.
+	PipelineServiceGetPipelineVersionByNameContext(ctx context.Context, params *PipelineServiceGetPipelineVersionByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionByNameOK, error)
+
 	// PipelineServiceListPipelineVersions lists all pipeline versions of a given pipeline ID.
 	PipelineServiceListPipelineVersions(params *PipelineServiceListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelineVersionsOK, error)
 
@@ -622,6 +628,68 @@ func (a *Client) PipelineServiceGetPipelineVersionContext(ctx context.Context, p
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*PipelineServiceGetPipelineVersionDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// PipelineServiceGetPipelineVersionByName finds a specific pipeline version by name and pipeline ID.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.PipelineServiceGetPipelineVersionByNameContext] instead.
+func (a *Client) PipelineServiceGetPipelineVersionByName(params *PipelineServiceGetPipelineVersionByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionByNameOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.PipelineServiceGetPipelineVersionByNameContext(ctx, params, authInfo, opts...)
+}
+
+// PipelineServiceGetPipelineVersionByNameContext finds a specific pipeline version by name and pipeline ID.
+//
+// Do not use the deprecated [PipelineServiceGetPipelineVersionByNameParams.Context] with this method: it would be ignored.
+func (a *Client) PipelineServiceGetPipelineVersionByNameContext(ctx context.Context, params *PipelineServiceGetPipelineVersionByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionByNameOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewPipelineServiceGetPipelineVersionByNameParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "PipelineService_GetPipelineVersionByName",
+		Method:             "GET",
+		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions/names/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &PipelineServiceGetPipelineVersionByNameReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*PipelineServiceGetPipelineVersionByNameOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineVersionByNameDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }

@@ -660,6 +660,38 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2b
 	return toApiPipelineVersion(pipelineVersion), nil
 }
 
+// Fetches a pipeline version for a given pipeline id and version name.
+func (s *BasePipelineServer) getPipelineVersionByName(ctx context.Context, pipelineID string, versionName string) (*model.PipelineVersion, error) {
+	// Fail fast if pipeline id is missing
+	if pipelineID == "" {
+		return nil, util.NewInvalidInputError("Failed to get a pipeline version by name. Pipeline id cannot be empty")
+	}
+
+	// Authorize against the parent pipeline, which resolves the namespace. The
+	// version id is not known yet, so it cannot be used here.
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbGet,
+	}
+	if err := s.canAccessPipeline(ctx, pipelineID, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline version by name due to authorization error for pipeline %v", pipelineID)
+	}
+	return s.resourceManager.GetPipelineVersionByName(pipelineID, versionName)
+}
+
+// GetPipelineVersionByName returns a pipeline version given its parent pipeline id
+// and name. Supports v2beta1 behavior.
+func (s *PipelineServer) GetPipelineVersionByName(ctx context.Context, request *apiv2beta1.GetPipelineVersionByNameRequest) (*apiv2beta1.PipelineVersion, error) {
+	if s.options.CollectMetrics {
+		getPipelineVersionRequests.Inc()
+	}
+
+	pipelineVersion, err := s.getPipelineVersionByName(ctx, request.GetPipelineId(), request.GetName())
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline version with name %s in pipeline %s", request.GetName(), request.GetPipelineId())
+	}
+	return toApiPipelineVersion(pipelineVersion), nil
+}
+
 // Fetches an array of pipeline versions for given search query parameters.
 func (s *BasePipelineServer) listPipelineVersions(ctx context.Context, pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error) {
 	// Fail fast if pipeline id is missing

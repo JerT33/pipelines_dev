@@ -1092,6 +1092,45 @@
         ]
       }
     },
+    "/apis/v2beta1/pipelines/{pipeline_id}/versions/names/{name}": {
+      "get": {
+        "summary": "Finds a specific pipeline version by name and pipeline ID.",
+        "operationId": "PipelineService_GetPipelineVersionByName",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineVersion"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googleRpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. ID of the parent pipeline.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "description": "Required input. Name of the pipeline version to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
     "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}": {
       "get": {
         "summary": "Gets a pipeline version by pipeline version ID and pipeline ID.",

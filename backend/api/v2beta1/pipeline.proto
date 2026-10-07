@@ -121,6 +121,14 @@ service PipelineService {
     };
   }
 
+  // Finds a specific pipeline version by name and pipeline ID.
+  rpc GetPipelineVersionByName(GetPipelineVersionByNameRequest)
+      returns (PipelineVersion) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/pipelines/{pipeline_id}/versions/names/{name}"
+    };
+  }
+
   // Lists all pipeline versions of a given pipeline ID.
   rpc ListPipelineVersions(ListPipelineVersionsRequest)
       returns (ListPipelineVersionsResponse) {
@@ -334,6 +342,14 @@ message GetPipelineVersionRequest {
 
   // Required input. ID of the pipeline version to be retrieved.
   string pipeline_version_id = 2;
+}
+
+message GetPipelineVersionByNameRequest {
+  // Required input. ID of the parent pipeline.
+  string pipeline_id = 1;
+
+  // Required input. Name of the pipeline version to be retrieved.
+  string name = 2;
 }
 
 message ListPipelineVersionsRequest {

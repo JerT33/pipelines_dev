@@ -12,6 +12,7 @@ Method | HTTP request | Description
 [**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline) | **GET** /apis/v2beta1/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
 [**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name) | **GET** /apis/v2beta1/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
 [**pipeline_service_get_pipeline_version**](PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
+[**pipeline_service_get_pipeline_version_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_version_by_name) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/names/{name} | Finds a specific pipeline version by name and pipeline ID.
 [**pipeline_service_list_pipeline_versions**](PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
 [**pipeline_service_list_pipelines**](PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
 [**pipeline_service_update_pipeline**](PipelineServiceApi.md#pipeline_service_update_pipeline) | **PATCH** /apis/v2beta1/pipelines/{pipeline.pipeline_id} | Updates a pipeline&#39;s mutable fields (display_name, tags).
@@ -614,6 +615,84 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
  **pipeline_version_id** | **str**| Required input. ID of the pipeline version to be retrieved. | 
+
+### Return type
+
+[**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **pipeline_service_get_pipeline_version_by_name**
+> V2beta1PipelineVersion pipeline_service_get_pipeline_version_by_name(pipeline_id, name)
+
+Finds a specific pipeline version by name and pipeline ID.
+
+### Example
+
+* Api Key Authentication (Bearer):
+```python
+from __future__ import print_function
+import time
+import kfp.server_api
+from kfp.server_api.rest import ApiException
+from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp.server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp.server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with kfp.server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
+    pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
+name = 'name_example' # str | Required input. Name of the pipeline version to be retrieved.
+
+    try:
+        # Finds a specific pipeline version by name and pipeline ID.
+        api_response = api_instance.pipeline_service_get_pipeline_version_by_name(pipeline_id, name)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling PipelineServiceApi->pipeline_service_get_pipeline_version_by_name: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
+ **name** | **str**| Required input. Name of the pipeline version to be retrieved. | 
 
 ### Return type
 
