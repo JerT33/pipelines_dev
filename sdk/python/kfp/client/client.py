@@ -726,6 +726,8 @@ class Client:
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         namespace: Optional[str] = None,
+        pipeline_name: Optional[str] = None,
+        pipeline_version_name: Optional[str] = None,
     ) -> kfp.server_api.V2beta1Run:
         """Runs a specified pipeline.
 
@@ -757,6 +759,11 @@ class Client:
                 account to use for this run.
             namespace: Kubernetes namespace to place the run in when
                 ``experiment_id`` is not set. Required in multi-user mode.
+            pipeline_name: Name of a pipeline in the run's namespace, used
+                instead of ``pipeline_id``. Requires a backend that supports
+                pipeline names.
+            pipeline_version_name: Name of a version of ``pipeline_name``. If
+                not set, the pipeline's default version is used.
 
         Returns:
             ``V2beta1Run`` object.
@@ -772,6 +779,8 @@ class Client:
             enable_caching=enable_caching,
             cache_key=cache_key,
             pipeline_root=pipeline_root,
+            pipeline_name=pipeline_name,
+            pipeline_version_name=pipeline_version_name,
         )
 
         run_body = kfp.server_api.V2beta1Run(
@@ -860,6 +869,8 @@ class Client:
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         namespace: Optional[str] = None,
+        pipeline_name: Optional[str] = None,
+        pipeline_version_name: Optional[str] = None,
     ) -> kfp.server_api.V2beta1RecurringRun:
         """Creates a recurring run.
 
@@ -912,6 +923,11 @@ class Client:
                 account this recurring run uses.
             namespace: Kubernetes namespace to place the recurring run in when
                 ``experiment_id`` is not set. Required in multi-user mode.
+            pipeline_name: Name of a pipeline in the run's namespace, used
+                instead of ``pipeline_id``. Requires a backend that supports
+                pipeline names.
+            pipeline_version_name: Name of a version of ``pipeline_name``. If
+                not set, the pipeline's default version is used.
         Returns:
             ``V2beta1RecurringRun`` object.
         """
@@ -926,6 +942,8 @@ class Client:
             enable_caching=enable_caching,
             cache_key=cache_key,
             pipeline_root=pipeline_root,
+            pipeline_name=pipeline_name,
+            pipeline_version_name=pipeline_version_name,
         )
 
         if all([interval_second, cron_expression
@@ -974,6 +992,8 @@ class Client:
         enable_caching: Optional[bool],
         cache_key: Optional[str],
         pipeline_root: Optional[str],
+        pipeline_name: Optional[str] = None,
+        pipeline_version_name: Optional[str] = None,
     ) -> _JobConfig:
         """Creates a JobConfig with spec and resource_references.
 
@@ -998,6 +1018,8 @@ class Client:
                 to prevent cross-component cache collisions, overriding automatic
                 task fingerprinting.
             pipeline_root: Root path of the pipeline outputs.
+            pipeline_name: Name of a pipeline, resolved by the server.
+            pipeline_version_name: Name of a version of pipeline_name.
 
         Returns:
             A _JobConfig object with attributes .pipeline_spec,
@@ -1005,9 +1027,20 @@ class Client:
         """
         from_spec = pipeline_package_path is not None
         from_template = pipeline_id is not None or version_id is not None
-        if from_spec == from_template:
+        from_name = pipeline_name is not None or pipeline_version_name is not None
+        if from_name:
+            if from_spec or from_template:
+                raise ValueError(
+                    'Specify the pipeline by `pipeline_name` or by '
+                    '`pipeline_id`/`pipeline_package_path`, not both.')
+            if not pipeline_name:
+                raise ValueError(
+                    'Provide a non-empty `pipeline_name` to reference a pipeline by name.'
+                )
+        elif from_spec == from_template:
             raise ValueError(
-                'Must specify either `pipeline_package_path` or `pipeline_id`.')
+                'Must specify either `pipeline_package_path`, `pipeline_id` or '
+                '`pipeline_name`.')
         if version_id is not None and pipeline_id is None:
             raise ValueError(
                 'To run a specific pipeline version, `pipeline_id` is also required.'
@@ -1033,6 +1066,11 @@ class Client:
             # version when it is omitted.
             pipeline_version_reference = kfp.server_api.V2beta1PipelineVersionReference(
                 pipeline_id=pipeline_id, pipeline_version_id=version_id)
+        elif pipeline_name is not None:
+            # The server resolves names in the run's namespace.
+            pipeline_version_reference = kfp.server_api.V2beta1PipelineVersionReference(
+                pipeline_name=pipeline_name,
+                pipeline_version_name=pipeline_version_name)
 
         runtime_config = kfp.server_api.V2beta1RuntimeConfig(
             pipeline_root=pipeline_root,

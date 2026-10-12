@@ -465,6 +465,67 @@ class TestClient(parameterized.TestCase):
 
             mock_create.assert_not_called()
 
+    def test_run_pipeline_sends_pipeline_name_reference(self):
+        # The server resolves names, so nothing is looked up client-side.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            self.client.run_pipeline(
+                job_name='run1',
+                namespace='ns1',
+                pipeline_name='training',
+                pipeline_version_name='v3',
+            )
+
+            run = mock_create.call_args.kwargs['run']
+            reference = run.pipeline_version_reference
+            self.assertEqual(reference.pipeline_name, 'training')
+            self.assertEqual(reference.pipeline_version_name, 'v3')
+            self.assertIsNone(reference.pipeline_id)
+            self.assertIsNone(run.pipeline_spec)
+
+    def test_create_recurring_run_sends_pipeline_name_reference(self):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client.create_recurring_run(
+                job_name='recurring1',
+                namespace='ns1',
+                pipeline_name='training',
+                interval_second=3600,
+            )
+
+            recurring_run = mock_create.call_args.kwargs['recurring_run']
+            reference = recurring_run.pipeline_version_reference
+            self.assertEqual(reference.pipeline_name, 'training')
+            self.assertIsNone(reference.pipeline_version_name)
+
+    def test_run_pipeline_rejects_invalid_pipeline_name_reference(self):
+        invalid = [
+            {
+                'pipeline_name': 'training',
+                'pipeline_id': 'p1'
+            },
+            {
+                'pipeline_name': 'training',
+                'pipeline_package_path': 'pipeline.yaml'
+            },
+            {
+                'pipeline_version_name': 'v3'
+            },
+            {
+                'pipeline_name': ''
+            },
+        ]
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            for kwargs in invalid:
+                with self.subTest(**kwargs):
+                    with self.assertRaises(ValueError):
+                        self.client.run_pipeline(
+                            job_name='run1', namespace='ns1', **kwargs)
+
+            mock_create.assert_not_called()
+
     @patch('kfp.Client.get_user_namespace', return_value='ns2')
     def test_list_recurring_runs_uses_user_namespace_when_not_provided(
             self, mock_get_user_namespace):
